@@ -1,4 +1,4 @@
-﻿import { Entity, FetchStrategySymbol, EntityManager, FetchStrategy, EntityType, EntityQuery, Predicate } from 'breeze-client';
+﻿import { Entity, EntityManager, FetchStrategy, EntityType, EntityQuery, Predicate } from 'breeze-client';
 
 export interface IRepository<T> {
     withId(key: any): Promise<T>;
@@ -10,7 +10,7 @@ export interface IRepository<T> {
 export class Repository<T> implements IRepository<T> {
 
     private _resourceNameSet: boolean;
-    protected _defaultFetchStrategy: FetchStrategySymbol;
+    protected _defaultFetchStrategy: FetchStrategy;
 
     constructor(private _manager: EntityManager,
         protected _entityTypeName: string,
@@ -76,7 +76,7 @@ export class Repository<T> implements IRepository<T> {
         return EntityQuery.from(this.localResourceName);
     }
 
-    protected executeQuery(query: EntityQuery, fetchStrategy?: FetchStrategySymbol): Promise<T[]> {
+    protected executeQuery(query: EntityQuery, fetchStrategy?: FetchStrategy): Promise<T[]> {
         let q = query.using(fetchStrategy || this._defaultFetchStrategy);
         return this.manager.executeQuery(q).then(data => {
             return <T[]><any>data.results;

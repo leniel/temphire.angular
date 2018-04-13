@@ -1,20 +1,21 @@
 ﻿import { Injectable} from '@angular/core';
 import { 
     config, EntityManager, NamingConvention, DataService, DataType, MetadataStore,
-    EntityType, NavigationProperty, DataProperty, EntityQuery, DataServiceOptions
+    EntityType, NavigationProperty, DataProperty, EntityQuery, DataServiceConfig,
 } from 'breeze-client';
 import remove from 'lodash-es/remove';
 import includes from 'lodash-es/includes';
 
 // Import required breeze adapters. Rollup.js requires the use of breeze.base.debug.js, which doesn't include
 // the breeze adapters. 
-import 'breeze-client/breeze.dataService.webApi';
-import 'breeze-client/breeze.modelLibrary.backingStore';
-import 'breeze-client/breeze.uriBuilder.json';
-import 'breeze-client/breeze.uriBuilder.odata';
+import 'breeze-client/adapters/adapter-data-service-webapi.umd';
+import 'breeze-client/adapters/adapter-model-library-backing-store.umd';
+import 'breeze-client/adapters/adapter-uri-builder-json.umd';
+import 'breeze-client/adapters/adapter-uri-builder-odata.umd';
 
 import { EntityTypeAnnotation } from '../entities/entity-type-annotation';
 import { RegistrationHelper } from '../entities/registration-helper';
+
 
 // The EntityManagerProvider manages a static master manager and a per instance sandbox manager.
 @Injectable()
@@ -30,7 +31,7 @@ export class EntityManagerProvider {
             // Configure breeze adapaters. See rollup.js comment above
             config.initializeAdapterInstances({ dataService: 'webApi', uriBuilder: 'odata' });
             NamingConvention.camelCase.setAsDefault();
-            let dsconfig: DataServiceOptions = {
+            let dsconfig: DataServiceConfig = {
                 serviceName: 'breeze'
             };
             if (location.port == '3000') {
@@ -89,57 +90,8 @@ export class EntityManagerProvider {
                     prop.validators.push(...pa.validators);
                     prop.displayName = pa.displayName;
                 });
-                this.ignoreForSerialization(metadataStore, t, ...etAnnotation.ignoreForSerialization);
             }
         });
-    }
-
-    private ignoreForSerialization(metadataStore: MetadataStore, typeInfo: string | EntityType, ...propertyNames: string[]) {
-        if (!propertyNames || propertyNames.length == 0) return;
-
-        let entityType = typeof (typeInfo) === 'string' ? <EntityType>metadataStore.getEntityType(<string>typeInfo) : <EntityType>typeInfo;
-
-        // Recursivley walk the inheritance tree and ignore the same properties for all parent types
-        let parentTypes = metadataStore.getEntityTypes().filter(type => {
-            let parentType = <EntityType>type;
-            return parentType.baseEntityType && parentType.baseEntityType === entityType;
-        });
-        parentTypes.forEach((parentType: EntityType) => this.ignoreForSerialization(metadataStore, parentType, ...propertyNames));
-
-        // Now ignore for current type
-        let dps = propertyNames.map(propertyName => {
-            let dp = entityType.getDataProperty(propertyName);
-            if (!dp) {
-                console.warn(`No data property with name ${propertyName} found in entity type ${entityType.shortName}`);
-            }
-            return dp;
-        });
-        // Get all the nulls out
-        remove(dps, dp => !dp);
-
-        // Get existing ignored properties
-        let ignoredProperties: DataProperty[] = (<any>entityType).$ignoredProperties;
-
-        // Signals that we've already installed our custom serializerFn
-        if (ignoredProperties) {
-            remove(dps, dp => includes(ignoredProperties, dp))
-            ignoredProperties = ignoredProperties.concat(dps);
-        } else {
-            // First ignored properties for this entity type
-            ignoredProperties = dps;
-            let origSerializerFn: (dataProperty: DataProperty, value: any) => any = (<any>entityType).serializerFn;
-            entityType.setProperties({
-                serializerFn: (dp, value) => {
-                    if (includes((<any>entityType).$ignoredProperties, dp)) {
-                        // Return undefined if property is ignored for serialization
-                        return undefined;
-                    }
-
-                    return origSerializerFn ? origSerializerFn(dp, value) : value;
-                }
-            });
-        }
-        (<any>entityType).$ignoredProperties = ignoredProperties;
     }
 }
 

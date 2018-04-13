@@ -25,9 +25,9 @@ module.exports = {
             'node_modules'
         ],
         extensions: ['.ts', '.js', '.html'],
-        alias: {
-            'breeze-client$': path.resolve(__dirname, 'node_modules', 'breeze-client', 'breeze.base.debug.js')
-        }
+        // alias: {
+        //     'breeze-client$': path.resolve(__dirname, 'node_modules', 'breeze-client', 'breeze.base.debug.js')
+        // }
     },
 
     plugins: [
