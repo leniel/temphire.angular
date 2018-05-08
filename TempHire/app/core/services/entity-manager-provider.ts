@@ -29,7 +29,8 @@ export class EntityManagerProvider {
     prepare(): Promise<any> {
         if (!EntityManagerProvider._preparePromise) {
             // Configure breeze adapaters. See rollup.js comment above
-            config.initializeAdapterInstances({ dataService: 'webApi', uriBuilder: 'odata' });
+            config.initializeAdapterInstance('dataService', 'webApi');
+            config.initializeAdapterInstance('uriBuilder', 'odata');
             NamingConvention.camelCase.setAsDefault();
             let dsconfig: DataServiceConfig = {
                 serviceName: 'breeze'
